@@ -42,14 +42,28 @@ void backward_convolutional_bias(matrix delta, matrix db)
 // returns: column matrix
 matrix im2col(image im, int size, int stride)
 {
+    int i, j, k;
     int outw = (im.w-1)/stride + 1;
     int outh = (im.h-1)/stride + 1;
     int rows = im.c*size*size;
     int cols = outw * outh;
     matrix col = make_matrix(rows, cols);
-
-    // TODO: 5.1 - fill in the column matrix
-
+    for (i = 0; i < rows; ++i) {
+        int dx = -(size-1)/2 + i%size;
+        int dy = -(size-1)/2 + (i/size)%size;
+        int ic = i / (size*size);
+        for(j = 0; j < im.h; j += stride){
+            for(k = 0; k < im.w; k += stride){
+                float val = 0;
+                int iw = k + dx;
+                int ih = j + dy;
+                if(ih >= 0 && ih < im.h && iw >= 0 && iw < im.w){
+                    val = im.data[ic*im.w*im.h + ih*im.w + iw];
+                }
+                col.data[i*col.cols + (j/stride)*outw + k/stride] = val;
+            }
+        }
+    }
     return col;
 }
 
@@ -60,13 +74,24 @@ matrix im2col(image im, int size, int stride)
 // image im: image to add elements back into
 void col2im(matrix col, int size, int stride, image im)
 {
+    int i, j, k;
     int outw = (im.w-1)/stride + 1;
-    int outh = (im.h-1)/stride + 1;
     int rows = im.c*size*size;
-    int cols = outw * outh;
-
-    // TODO: 5.2 - add values into image im from the column matrix
-
+    for (i = 0; i < rows; ++i) {
+        int dx = -(size-1)/2 + i%size;
+        int dy = -(size-1)/2 + (i/size)%size;
+        int ic = i / (size*size);
+        for(j = 0; j < im.h; j += stride){
+            for(k = 0; k < im.w; k += stride){
+                int iw = k + dx;
+                int ih = j + dy;
+                float val = col.data[i*col.cols + j/stride*outw + k/stride];
+                if(ih >= 0 && ih < im.h && iw >= 0 && iw < im.w){
+                    im.data[ic*im.w*im.h + ih*im.w + iw] += val;
+                }
+            }
+        }
+    }
 }
 
 // Run a convolutional layer on input
@@ -82,6 +107,7 @@ matrix forward_convolutional_layer(layer l, matrix in)
     for(i = 0; i < in.rows; ++i){
         image example = float_to_image(in.data + i*in.cols, l.width, l.height, l.channels);
         matrix x = im2col(example, l.size, l.stride);
+        //if(i==0) printf("%d %d %d\n", l.w.rows, l.w.cols, x.cols);
         matrix wx = matmul(l.w, x);
         for(j = 0; j < wx.rows*wx.cols; ++j){
             out.data[i*out.cols + j] = wx.data[j];
@@ -150,7 +176,13 @@ void backward_convolutional_layer(layer l, matrix prev_delta)
 // float decay: l2 regularization term
 void update_convolutional_layer(layer l, float rate, float momentum, float decay)
 {
-    // TODO: 5.3 Update the weights, similar to the connected layer.
+    // TODO
+    axpy_matrix(rate, l.db, l.b);
+    scal_matrix(momentum, l.db);
+
+    axpy_matrix(-decay, l.w, l.dw);
+    axpy_matrix(rate, l.dw, l.w);
+    scal_matrix(momentum, l.dw);
 }
 
 // Make a new convolutional layer

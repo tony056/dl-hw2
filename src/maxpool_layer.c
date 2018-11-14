@@ -11,11 +11,35 @@
 // returns: the result of running the layer
 matrix forward_maxpool_layer(layer l, matrix in)
 {
+    int i, j, k, m;
+    int dx, dy;
+
+    int pad = -(l.size-1)/2;
+
     int outw = (l.width-1)/l.stride + 1;
     int outh = (l.height-1)/l.stride + 1;
     matrix out = make_matrix(in.rows, outw*outh*l.channels);
-
-    // TODO: 6.1 - iterate over the input and fill in the output with max values
+    for(i = 0; i < in.rows; ++i){
+        for(j = 0; j < l.channels; ++j){
+            for(k = 0; k < outh; ++k){
+                for(m = 0; m < outw; ++m){
+                    float max = -FLT_MAX;
+                    for(dy = 0; dy < l.size; ++dy){
+                        for(dx = 0; dx < l.size; ++dx){
+                            int inx = m*l.stride + pad + dx;
+                            int iny = k*l.stride + pad + dy;
+                            int index = i*in.cols + j*l.height*l.width + iny*l.width + inx;
+                            if (inx >= 0 && inx < l.width && iny >= 0 && iny < l.height && in.data[index] > max){
+                                max = in.data[index];
+                            }
+                        }
+                    }
+                    int index = i*out.cols + j*outh*outw + k*outw + m;
+                    out.data[index] = max;
+                }
+            }
+        }
+    }
 
     l.in[0] = in;
     free_matrix(l.out[0]);
@@ -34,13 +58,37 @@ void backward_maxpool_layer(layer l, matrix prev_delta)
     matrix out   = l.out[0];
     matrix delta = l.delta[0];
 
+    int i, j, k, m;
+    int dx, dy;
+
+    int pad = -(l.size-1)/2;
+
     int outw = (l.width-1)/l.stride + 1;
     int outh = (l.height-1)/l.stride + 1;
+    for(i = 0; i < in.rows; ++i){
+        for(j = 0; j < l.channels; ++j){
+            for(k = 0; k < outh; ++k){
+                for(m = 0; m < outw; ++m){
+                    float max = -FLT_MAX;
+                    int maxi = 0;
+                    for(dy = 0; dy < l.size; ++dy){
+                        for(dx = 0; dx < l.size; ++dx){
+                            int inx = m*l.stride + pad + dx;
+                            int iny = k*l.stride + pad + dy;
+                            int index = i*in.cols + j*l.height*l.width + iny*l.width + inx;
+                            if (inx >= 0 && inx < l.width && iny >= 0 && iny < l.height && in.data[index] > max){
+                                max = in.data[index];
+                                maxi = index;
+                            }
 
-    // TODO: 6.2 - find the max values in the input again and fill in the
-    // corresponding delta with the delta from the output. This should be
-    // similar to the forward method in structure.
-
+                        }
+                    }
+                    int index = i*out.cols + j*outh*outw + k*outw + m;
+                    prev_delta.data[maxi] = delta.data[index];
+                }
+            }
+        }
+    }
 }
 
 // Update maxpool layer
