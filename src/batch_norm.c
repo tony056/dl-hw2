@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include <float.h>
 
 matrix mean(matrix x, int spatial)
 {
@@ -23,6 +24,11 @@ matrix variance(matrix x, matrix m, int spatial)
 {
     matrix v = make_matrix(1, x.cols/spatial);
     // TODO: 7.1 - calculate variance
+    for (int i = 0; i < x.rows; i++) {
+      for (int j = 0; j < x.cols; j++) {
+        v.data[j/spatial] += (x.data[i*x.cols + j] - m.data[j/spatial]) * (x.data[i*x.cols + j] - m.data[j/spatial]);
+      }
+    }
     return v;
 }
 
@@ -30,8 +36,14 @@ matrix normalize(matrix x, matrix m, matrix v, int spatial)
 {
     matrix norm = make_matrix(x.rows, x.cols);
     // TODO: 7.2 - normalize array, norm = (x - mean) / sqrt(variance + eps)
+    for (int r = 0; r < x.rows; r++) {
+      for (int c = 0; c < x.cols; c++) {
+        int index = r * x.cols + c;
+        assert(x.cols % spatial == 0);
+        norm.data[index] = (x.data[index] - m.data[c/spatial]) / (sqrt(v[c/spatial] + FLT_EPSILON);
+      }
+    }
     return norm;
-    
 }
 
 matrix batch_normalize_forward(layer l, matrix x)
