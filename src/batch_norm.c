@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-//#include <float.h>
-#define FLT_EPSILON .00001f
+#include <float.h>
+
 matrix mean(matrix x, int spatial)
 {
     matrix m = make_matrix(1, x.cols/spatial);
@@ -39,8 +39,8 @@ matrix normalize(matrix x, matrix m, matrix v, int spatial)
     for (int r = 0; r < x.rows; r++) {
       for (int c = 0; c < x.cols; c++) {
         int index = r * x.cols + c;
-        fprintf(stderr, "nor base: %f\n", sqrt(v.data[c/spatial] + FLT_EPSILON));
-        norm.data[index] = (x.data[index] - m.data[c/spatial]) / sqrt(v.data[c/spatial] + FLT_EPSILON);
+        //fprintf(stderr, "nor base: %f\n", sqrt(v.data[c/spatial] + FLT_EPSILON));
+        norm.data[index] = (x.data[index] - m.data[c/spatial]) / sqrtf(v.data[c/spatial] + FLT_EPSILON);
       }
     }
     return norm;
@@ -81,7 +81,7 @@ matrix delta_mean(matrix d, matrix variance, int spatial)
     for (int r = 0; r < d.rows; r++) {
       for (int c = 0; c < d.cols; c++) {
         // leave the second part as TODO
-        dm.data[c/spatial] += (-d.data[r * d.cols + c] / sqrt(variance.data[c/spatial] + FLT_EPSILON));
+        dm.data[c/spatial] += (-d.data[r * d.cols + c] / sqrtf(variance.data[c/spatial] + FLT_EPSILON));
       }
     }
     return dm;
@@ -97,7 +97,7 @@ matrix delta_variance(matrix d, matrix x, matrix mean, matrix variance, int spat
       for (int c = 0; c < d.cols; c++) {
         int index = r * d.cols + c;
         float v_eps =  variance.data[c/spatial] + FLT_EPSILON;
-        dv.data[c/spatial] += (-0.5 * d.data[index] * (x.data[index] - mean.data[c/spatial]) / (v_eps * sqrt(v_eps)));
+        dv.data[c/spatial] += (-0.5 * d.data[index] * (x.data[index] - mean.data[c/spatial]) / (v_eps * sqrtf(v_eps)));
       }
     }
     return dv;
@@ -114,7 +114,7 @@ matrix delta_batch_norm(matrix d, matrix dm, matrix dv, matrix mean, matrix vari
         int index = r * dx.cols + c;
         int m_v_index = c / spatial;
         float v_eps = variance.data[c / spatial] + FLT_EPSILON;
-        dx.data[index] = d.data[index] / sqrt(v_eps)
+        dx.data[index] = d.data[index] / sqrtf(v_eps)
                          +  2 * dv.data[m_v_index] * (x.data[index] - mean.data[m_v_index]) / m
                          + dm.data[m_v_index] / m;
       }
