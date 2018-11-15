@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include <float.h>
+//#define FLT_EPSILON .00001f
 
 matrix mean(matrix x, int spatial)
 {
@@ -26,8 +27,11 @@ matrix variance(matrix x, matrix m, int spatial)
     // TODO: 7.1 - calculate variance
     for (int i = 0; i < x.rows; i++) {
       for (int j = 0; j < x.cols; j++) {
-        v.data[j/spatial] += (x.data[i*x.cols + j] - m.data[j/spatial]) * (x.data[i*x.cols + j] - m.data[j/spatial]);
+        v.data[j/spatial] += pow(x.data[i*x.cols + j] - m.data[j/spatial], 2.0);
       }
+    }
+    for (int i = 0; i < v.cols; i++) {
+      v.data[i] = v.data[i] / x.rows / spatial;
     }
     return v;
 }
@@ -54,10 +58,11 @@ matrix batch_normalize_forward(layer l, matrix x)
         return normalize(x, l.rolling_mean, l.rolling_variance, spatial);
     }
     matrix m = mean(x, spatial);
+    //fprintf(stderr, "after mean\n");
     matrix v = variance(x, m, spatial);
-
+    //fprintf(stderr, "after variance\n");
     matrix x_norm = normalize(x, m, v, spatial);
-
+    //fprintf(stderr, "after normalize\n");
     scal_matrix(1-s, l.rolling_mean);
     axpy_matrix(s, m, l.rolling_mean);
 
@@ -97,7 +102,7 @@ matrix delta_variance(matrix d, matrix x, matrix mean, matrix variance, int spat
       for (int c = 0; c < d.cols; c++) {
         int index = r * d.cols + c;
         float v_eps =  variance.data[c/spatial] + FLT_EPSILON;
-        dv.data[c/spatial] += (-0.5 * d.data[index] * (x.data[index] - mean.data[c/spatial]) / (v_eps * sqrtf(v_eps)));
+        dv.data[c/spatial] += (-d.data[index] * (x.data[index] - mean.data[c/spatial]) / (v_eps * sqrtf(v_eps) * 2.0f));
       }
     }
     return dv;
@@ -108,12 +113,12 @@ matrix delta_batch_norm(matrix d, matrix dm, matrix dv, matrix mean, matrix vari
     int i, j;
     matrix dx = make_matrix(d.rows, d.cols);
     // TODO: 7.5 - calculate dL/dx
-    int m = dx.rows * dx.cols;
-    for (int r = 0; r < dx.rows; r++) {
-      for (int c = 0; c < dx.cols; c++) {
-        int index = r * dx.cols + c;
-        int m_v_index = c / spatial;
-        float v_eps = variance.data[c / spatial] + FLT_EPSILON;
+    int m = d.rows * spatial;
+    for (i = 0; i < dx.rows; i++) {
+      for (j = 0; j < dx.cols; j++) {
+        int index = i * dx.cols + j;
+        int m_v_index = j / spatial;
+        float v_eps = variance.data[j / spatial] + FLT_EPSILON;
         dx.data[index] = d.data[index] / sqrtf(v_eps)
                          +  2 * dv.data[m_v_index] * (x.data[index] - mean.data[m_v_index]) / m
                          + dm.data[m_v_index] / m;
