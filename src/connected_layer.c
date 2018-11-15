@@ -40,6 +40,10 @@ matrix forward_connected_layer(layer l, matrix in)
     // TODO: 3.1 - run the network forward
     //matrix out = make_matrix(in.rows, l.w.cols); // Going to want to change this!
     matrix out = matmul(in, l.w);
+    if(l.batchnorm){
+      matrix xnorm = batch_normalize_forward(l, out);
+      out = xnorm;
+    }
     forward_bias(out, l.b);
     activate_matrix(out, l.activation);
 
@@ -55,7 +59,7 @@ matrix forward_connected_layer(layer l, matrix in)
 
 // Run a connected layer backward
 // layer l: layer to run
-// matrix delta: 
+// matrix delta:
 void backward_connected_layer(layer l, matrix prev_delta)
 {
     matrix in    = l.in[0];
@@ -66,10 +70,15 @@ void backward_connected_layer(layer l, matrix prev_delta)
     // delta is the error made by this layer, dL/dout
     // First modify in place to be dL/d(in*w+b) using the gradient of activation
     gradient_matrix(out, l.activation, delta);
-    
     // Calculate the updates for the bias terms using backward_bias
     // The current bias deltas are stored in l.db
     backward_bias(delta, l.db);
+
+    if(l.batchnorm){
+      matrix dx = batch_normalize_backward(l, delta);
+      free_matrix(delta);
+      l.delta[0] = delta = dx;
+    }
 
     // Then calculate dL/dw. Use axpy to add this dL/dw into any previously stored
     // updates for our weights, which are stored in l.dw
@@ -91,7 +100,7 @@ void backward_connected_layer(layer l, matrix prev_delta)
     free_matrix(xt);
 }
 
-// Update 
+// Update
 void update_connected_layer(layer l, float rate, float momentum, float decay)
 {
     // TODO
@@ -119,4 +128,3 @@ layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
     l.update   = update_connected_layer;
     return l;
 }
-

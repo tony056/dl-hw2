@@ -40,7 +40,7 @@ matrix normalize(matrix x, matrix m, matrix v, int spatial)
       for (int c = 0; c < x.cols; c++) {
         int index = r * x.cols + c;
         assert(x.cols % spatial == 0);
-        norm.data[index] = (x.data[index] - m.data[c/spatial]) / (sqrt(v[c/spatial] + FLT_EPSILON);
+        norm.data[index] = (x.data[index] - m.data[c/spatial]) / sqrt(v.data[c/spatial] + FLT_EPSILON);
       }
     }
     return norm;
@@ -78,6 +78,12 @@ matrix delta_mean(matrix d, matrix variance, int spatial)
 {
     matrix dm = make_matrix(1, variance.cols);
     // TODO: 7.3 - calculate dL/dmean
+    for (int r = 0; r < d.rows; r++) {
+      for (int c = 0; c < d.cols; c++) {
+        // leave the second part as TODO
+        dm.data[c/spatial] += (-d.data[r * d.cols + c] / sqrt(variance.data[c/spatial] + FLT_EPSILON));
+      }
+    }
     return dm;
 }
 
@@ -85,6 +91,15 @@ matrix delta_variance(matrix d, matrix x, matrix mean, matrix variance, int spat
 {
     matrix dv = make_matrix(1, variance.cols);
     // TODO: 7.4 - calculate dL/dvariance
+    assert(d.rows == x.rows);
+    assert(d.cols == x.cols);
+    for (int r = 0; r < d.rows; r++) {
+      for (int c = 0; c < d.cols; c++) {
+        int index = r * d.cols + c;
+        float v_eps =  variance.data[c/spatial] + FLT_EPSILON;
+        dv.data[c/spatial] += (-0.5 * d.data[index] * (x.data[index] - mean.data[c/spatial]) / (v_eps * sqrt(v_eps)));
+      }
+    }
     return dv;
 }
 
@@ -93,6 +108,17 @@ matrix delta_batch_norm(matrix d, matrix dm, matrix dv, matrix mean, matrix vari
     int i, j;
     matrix dx = make_matrix(d.rows, d.cols);
     // TODO: 7.5 - calculate dL/dx
+    int m = dx.rows * dx.cols;
+    for (int r = 0; r < dx.rows; r++) {
+      for (int c = 0; c < dx.cols; c++) {
+        int index = r * dx.cols + c;
+        int m_v_index = c / spatial;
+        float v_eps = variance.data[c / spatial] + FLT_EPSILON;
+        dx.data[index] = d.data[index] / sqrt(v_eps)
+                         +  2 * dv.data[m_v_index] * (x.data[index] - mean.data[m_v_index]) / m
+                         + dm.data[m_v_index] / m;
+      }
+    }
     return dx;
 }
 
