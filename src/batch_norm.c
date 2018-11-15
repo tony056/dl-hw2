@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <math.h>
 //#include <float.h>
-#define FLT_EPSILON 1E-4
+#define FLT_EPSILON .00001f
 matrix mean(matrix x, int spatial)
 {
     matrix m = make_matrix(1, x.cols/spatial);
