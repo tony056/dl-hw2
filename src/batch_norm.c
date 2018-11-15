@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <math.h>
 //#include <float.h>
-#define FLT_EPSILON 0.00001
+#define FLT_EPSILON 0.0001
 matrix mean(matrix x, int spatial)
 {
     matrix m = make_matrix(1, x.cols/spatial);
@@ -40,6 +40,7 @@ matrix normalize(matrix x, matrix m, matrix v, int spatial)
       for (int c = 0; c < x.cols; c++) {
         int index = r * x.cols + c;
         assert(x.cols % spatial == 0);
+        printf("nor base: %f\n", sqrt(v.data[c/spatial] + FLT_EPSILON));
         norm.data[index] = (x.data[index] - m.data[c/spatial]) / sqrt(v.data[c/spatial] + FLT_EPSILON);
       }
     }
