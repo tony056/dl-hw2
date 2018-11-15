@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-#include <float.h>
-
+//#include <float.h>
+#define FLT_EPSILON 0.00001
 matrix mean(matrix x, int spatial)
 {
     matrix m = make_matrix(1, x.cols/spatial);
