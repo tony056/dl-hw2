@@ -39,8 +39,7 @@ matrix normalize(matrix x, matrix m, matrix v, int spatial)
     for (int r = 0; r < x.rows; r++) {
       for (int c = 0; c < x.cols; c++) {
         int index = r * x.cols + c;
-        assert(x.cols % spatial == 0);
-        printf("nor base: %f\n", sqrt(v.data[c/spatial] + FLT_EPSILON));
+        fprintf(stderr, "nor base: %f\n", sqrt(v.data[c/spatial] + FLT_EPSILON));
         norm.data[index] = (x.data[index] - m.data[c/spatial]) / sqrt(v.data[c/spatial] + FLT_EPSILON);
       }
     }
